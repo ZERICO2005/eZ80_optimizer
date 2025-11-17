@@ -82,6 +82,23 @@ Pattern asm_pattern[] = {
     "\tex\tde, hl\n\tadd\tiy, de\n\tlea\thl,",
     1,
 },
+/* */ {
+    "\tpush\thl\n\tpop\tde\n\tpush\tbc\n\tpop\thl\n",
+    "\tex\tde, hl\n\tpush\tbc\n\tpop\thl\n",
+    1,
+},
+
+// stack frame
+/* */ {
+    "\tpush\thl\n\tpop\tbc\n\tpop\thl\n\tpop\thl\n",
+    "\tex\t(sp), hl\n\tpop\tbc\n\tpop\thl\n",
+    1,
+},
+/* */ {
+    "\tpush\thl\n\tpop\tiy\n\tpop\thl\n\tpop\thl\n",
+    "\tex\t(sp), hl\n\tpop\tiy\n\tpop\thl\n",
+    1,
+},
 
 // sign extension
 /* */ {
@@ -177,6 +194,11 @@ Pattern asm_pattern[] = {
 /* UHL <<= 1 */ {
     "\tld\tc, 1\n\tlea\thl, iy\n\tcall\t__ishl\n",
     "\tld\tc, 1\n\tlea\thl, iy\n\tadd\thl, hl\n",
+    3,
+},
+/* UHL <<= 1 */ {
+    "\tld\tc, 1\n\tex\tde, hl\n\tcall\t__ishl\n",
+    "\tld\tc, 1\n\tex\tde, hl\n\tadd\thl, hl\n",
     3,
 },
 

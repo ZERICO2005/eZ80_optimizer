@@ -36,9 +36,11 @@ int process_file(const Config& config, char const * const path) {
 	string output_asm;
 	load_asm_file(input_asm, path);
 	Action action = parse_asm(output_asm, input_asm);
-	if (action == Action::Overwrite && !config.dry_run) {
-        printf("WRITE: %s\n", path);
-		save_asm_file(output_asm, path);
+	if (action == Action::Overwrite) {
+        printf("FILE: %s\n", path);
+        if (!config.dry_run) {
+		    save_asm_file(output_asm, path);
+        }
 	}
     return 0;
 }
@@ -55,7 +57,7 @@ int process_directory(const Config& config, char const * const path) {
         return EXIT_FAILURE;
     }
     struct dirent *entry;
-    int files_found = 0;
+    __attribute__((__unused__)) int files_found = 0;
     while ((entry = readdir(dir)) != nullptr) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;

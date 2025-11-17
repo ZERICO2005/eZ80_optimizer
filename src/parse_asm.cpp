@@ -80,7 +80,7 @@ Action parse_asm(string& output, const string& input) {
     process_code_block(code_block, changes, bytes_saved);
 
     if (changes > 0) {
-        printf("Total changes: %d Byte diff: %+d\n", changes, -bytes_saved);
+        printf("Total changes: %d diff: %+d\n", changes, -bytes_saved);
     }
 
     if (changes == 0) {
