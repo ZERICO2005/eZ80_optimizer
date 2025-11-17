@@ -31,9 +31,10 @@ struct find_and_replace {
     }
 };
 
-static int process_code_block(string& block) {
+static void process_code_block(string& block, int& total_changes, int& bytes_saved) {
     find_and_replace code(block);
-    int total_changes = 0;
+    total_changes = 0;
+    bytes_saved = 0;
     for (size_t i = 0; i < ARRAY_LEN(asm_pattern); i++) {
         const Pattern& pat = asm_pattern[i];
         int count = code.replace(pat.src, pat.dst);
@@ -46,8 +47,8 @@ static int process_code_block(string& block) {
             );
         }
         total_changes += count;
+        bytes_saved += pat.byte_diff * count;
     }
-    return total_changes;
 }
 
 Action parse_asm(string& output, const string& input) {
@@ -76,9 +77,10 @@ Action parse_asm(string& output, const string& input) {
 
     string code_block = input.substr(beg_pos, end_pos - beg_pos);
 
-    int changes = process_code_block(code_block);
+    int changes, bytes_saved;
+    process_code_block(code_block, changes, bytes_saved);
 
-    printf("Total changes: %d\n", changes);
+    printf("Total changes: %d Byte diff: %+d\n", changes, -bytes_saved);
 
     if (changes == 0) {
         return Action::Do_Nothing;
