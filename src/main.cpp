@@ -41,15 +41,16 @@ int main(void) {
 	printf("asm parse\n");
 
 	string input_asm;
+	string output_asm;
 	load_asm_file(input_asm, input_path);
 	if (input_asm.empty() || input_asm.size() < 10) {
 		printf("Error: \"%s\" is empty\n", input_path);
 		return 0;
 	}
-	parse_asm(input_asm);
-
-	// string output_asm = code_section_to_string(code_section);
-	// save_asm_file(output_path, output_asm);
+	Action action = parse_asm(output_asm, input_asm);
+	if (action == Action::Overwrite) {
+		save_asm_file(output_path, output_asm);
+	}
 
 	printf("finished\n");
 	return 0;
