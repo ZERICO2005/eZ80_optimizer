@@ -1,57 +1,51 @@
-#include <stdio.h>
-
-#include <iostream>
-#include <sstream>
-#include <fstream>
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
 
 #include "prog.h"
 
-using std::string;
-
-void load_asm_file(string& output, const char* input_path) {
-    std::ifstream file(input_path);
-    if (file) {
-        // Read the file content into the string
-        output.assign((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
-        file.close(); // Close the file
-    } else {
-        std::cerr << "Error opening file: " << input_path << std::endl;
-    }
+static void print_version(void) {
+    printf("ezcxx_opt version 0.0.0\n");
 }
 
-void save_asm_file(const char* output_path, std::string& input) {
-    std::ofstream output_file(output_path, std::ios::binary);
-
-    if (!output_file) {
-        std::cerr << "Error opening file for writing: " << output_path << std::endl;
-        return;
-    }
-
-    output_file.write(input.c_str(), input.size());
-
-    output_file.close();
-
-    std::cout << "Data written to " << output_path << " successfully." << std::endl;
+static void print_help(void) {
+    print_version();
+    printf("Useage: ezcxx_opt [OPTIONS] <files/directories>\n");
+    printf("Options:\n");
+    printf("--freestanding: disable inlining of standard C functions\n");
 }
 
-int main(void) {
-	char const * const input_path = "../input/input_asm.src";
-	char const * const output_path = "../output/output_asm.src";
-	printf("asm parse\n");
-
-	string input_asm;
-	string output_asm;
-	load_asm_file(input_asm, input_path);
-	if (input_asm.empty() || input_asm.size() < 10) {
-		printf("Error: \"%s\" is empty\n", input_path);
-		return 0;
-	}
-	Action action = parse_asm(output_asm, input_asm);
-	if (action == Action::Overwrite) {
-		save_asm_file(output_path, output_asm);
-	}
-
-	printf("finished\n");
-	return 0;
+int main(int const argc, char const * const argv[]) {
+    if (argc <= 1) {
+        print_help();
+        return EXIT_SUCCESS;
+    }
+    int index = 1;
+    Config config;
+    // handle config
+    for (; index < argc; index++) {
+        char const * const arg = argv[index];
+        if (strcmp(arg, "--version") == 0) {
+            print_version();
+            return EXIT_SUCCESS;
+        }
+        if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
+            print_help();
+            return EXIT_SUCCESS;
+        }
+        if (strcmp(arg, "--freestanding")) {
+            config.freestanding = true;
+            continue;
+        }
+        break;
+    }
+    // handle files/folders/directories
+    for (; index < argc; index++) {
+        char const * const arg = argv[index];
+        int status = process_path(config, arg);
+        if (status != 0) {
+            return EXIT_FAILURE;
+        }
+    }
+    return EXIT_SUCCESS;
 }

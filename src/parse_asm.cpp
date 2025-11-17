@@ -39,7 +39,7 @@ static void process_code_block(string& block, int& total_changes, int& bytes_sav
         const Pattern& pat = asm_pattern[i];
         int count = code.replace(pat.src, pat.dst);
         if (count >= 0) {
-            printf(
+            test_printf(
                 "Replaced %d:\n\t%s\n\t%s\n",
                 count,
                 visualize_escape_codes(pat.src).c_str(),
