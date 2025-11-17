@@ -13,16 +13,6 @@ Pattern asm_pattern[] = {
     "\tsbc\ta, a\n",
 },
 
-/* */ {
-    "\trrc\ta\n\tsbc\ta, a\n",
-    "\trrca\n\tsbc\ta, a\n",
-},
-
-/* */ {
-    "\trlc\ta\n\tsbc\ta, a\n",
-    "\trlca\n\tsbc\ta, a\n",
-},
-
 // canonicalization
 /* fabsf */ {
     "\tcall\t_fabs\n",
@@ -40,15 +30,9 @@ Pattern asm_pattern[] = {
     "\tpop\thl\n\tpop\tde\n\tres\t7, e\n",
 },
 
-/* */ {
+/* calling convention conversion */ {
     "\tpush\thl\n\tpop\tbc\n\tld\ta, e\n\tpop\thl\n\tpop\thl\n",
     "\tex\t(sp), hl\n\tpop\tbc\n\tpop\thl\n\tld\ta, e\n",
-},
-
-// duplicate value register loads
-/* */ {
-    "\tld\tbc, 0\n\tld\tiy, 0\n",
-    "\tld\tiy, 0\n\tlea\tbc, iy\n",
 },
 
 // destructive register loads
@@ -65,8 +49,12 @@ Pattern asm_pattern[] = {
     "\tex\tde, hl\n\tlea\thl,",
 },
 /* */ {
-    "\tld\tiy, 0\n\tlea\thl, iy\n\tld\tiy,",
-    "\tld\thl, 0\n\tld\tiy,",
+    "\tpush\thl\n\tpop\tde\n\tadd\tiy, de\n\tld\thl,",
+    "\tex\tde, hl\n\tadd\tiy, de\n\tld\thl,",
+},
+/* */ {
+    "\tpush\thl\n\tpop\tde\n\tadd\tiy, de\n\tlea\thl,",
+    "\tex\tde, hl\n\tadd\tiy, de\n\tlea\thl,",
 },
 
 // sign extension
@@ -76,12 +64,57 @@ Pattern asm_pattern[] = {
 },
 
 /* */ {
-    "\tpush\thl\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
-    "\tadd\thl, hl\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+    "\tld\tl, a\n\trlc\tl\n\tsbc\thl, hl\n",
+    "\trlca\n\trrca\n\tsbc\thl, hl\n",
 },
 
+/* */ {
+    "\tld\tl, a\n\trlc\tl\n\tsbc\thl, hl\n",
+    "\trlca\n\trrca\n\tsbc\thl, hl\n",
+},
 
-// __ishl
+// absolute value probably
+/* */ {
+    "\tpush\tde\n\tpop\thl\n\tpush\tde\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tpush\tde\n\tpop\thl\n\tadd\thl, hl\n\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+},
+
+/* */ {
+    "\tpush\tbc\n\tpop\thl\n\tpush\tbc\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tpush\tbc\n\tpop\thl\n\tadd\thl, hl\n\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+},
+
+/* */ {
+    "\tpush\thl\n\tpop\tde\n\tpush\tde\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tpush\thl\n\tpop\tde\n\tadd\thl, hl\n\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+},
+
+/* */ {
+    "\tpush\thl\n\tpop\tbc\n\tpush\tbc\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tpush\thl\n\tpop\tbc\n\tadd\thl, hl\n\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+},
+
+/* */ {
+    "\tpush\thl\n\tpop\tiy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tadd\thl, hl\n\tpush\thl\n\tpop\tiy\n\tsbc\thl, hl\n",
+},
+
+/* */ {
+    "\tlea\thl, iy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
+    "\tadd\tiy, iy\n\tsbc\thl, hl\n",
+},
+
+// __ishl special
+/* UHL <<= 1 */ {
+    "\tld\tc, 1\n\tcall\t__ishl\n\tpush\thl\n\tpop\tbc\n",
+    "\tadd\thl, hl\n\tpush\thl\n\tpop\tbc\n",
+},
+/* UHL <<= 2 */ {
+    "\tld\tc, 2\n\tcall\t__ishl\n\tpush\thl\n\tpop\tbc\n",
+    "\tadd\thl, hl\n\tadd\thl, hl\n\tpush\thl\n\tpop\tbc\n",
+},
+
+// __ishl common
 /* UHL <<= 1 */ {
     "\tld\tc, 1\n\tcall\t__ishl\n",
     "\tld\tc, 1\n\tadd\thl, hl\n"
@@ -171,6 +204,18 @@ Pattern asm_pattern[] = {
 /* A >>= 7 */ {
     "\tld\tb, 7\n\tcall\t__bshrs\n",
     "\tld\tb, 7\n\trlca\n\tsbc\ta, a\n"
+},
+
+// __sshru
+/* HL >>= 1 */ {
+    "\tld\tc, 1\n\tcall\t__sshru\n",
+    "\tld\tc, 1\n\tsrl\th\n\trr\tl\n"
+},
+
+// __sshrs
+/* HL >>= 1 */ {
+    "\tld\tc, 1\n\tcall\t__sshrs\n",
+    "\tld\tc, 1\n\tsra\th\n\trr\tl\n"
 },
 
 // __sand

@@ -37,7 +37,7 @@ static int process_code_block(string& block) {
     for (size_t i = 0; i < ARRAY_LEN(asm_pattern); i++) {
         const Pattern& pat = asm_pattern[i];
         int count = code.replace(pat.src, pat.dst);
-        if (count > 0) {
+        if (count >= 0) {
             printf(
                 "Replaced %d:\n\t%s\n\t%s\n",
                 count,
