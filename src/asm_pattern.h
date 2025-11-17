@@ -14,6 +14,21 @@ Pattern asm_pattern[] = {
     "\tsbc\ta, a\n",
     2,
 },
+/* bool testing */ {
+    "\tsbc\ta, a\n\tinc\ta\n\tbit\t0, a\n",
+    "\tsbc\ta, a\n\tinc\ta\n",
+    2,
+},
+/* bool testing */ {
+    "\tand\ta, 1\n\tbit\t0, a\n",
+    "\tand\ta, 1\n",
+    2,
+},
+/* bool testing */ {
+    "\tand\ta, 1\n\tor\ta, a\n",
+    "\tand\ta, 1\n",
+    1,
+},
 /* */ {
     "\tex\tde, hl\n\tld\te, iyl\n\tld\td, iyh\n\tex\tde, hl\n\tor\ta, a\n\tsbc.sis\thl, bc\n",
     "\tlea\thl, iy\n\tor\ta, a\n\tsbc.sis\thl, bc\n",
@@ -99,11 +114,27 @@ Pattern asm_pattern[] = {
     "\tex\t(sp), hl\n\tpop\tiy\n\tpop\thl\n",
     1,
 },
+/* */ {
+    "\tpush\thl\n\tpop\tiy\n\tld\tsp, iy\n",
+    "\tpush\thl\n\tpop\tiy\n\tld\tsp, hl\n",
+    1,
+},
+
 
 // sign extension
 /* */ {
     "\tld\tl, a\n\trlc\tl\n\tsbc\thl, hl\n",
     "\trlca\n\trrca\n\tsbc\thl, hl\n",
+    1,
+},
+/* */ {
+    "\trlc\ta\n\tsbc\ta, a\n",
+    "\trlca\n\tsbc\ta, a\n",
+    1,
+},
+/* */ {
+    "\trrc\ta\n\tsbc\ta, a\n",
+    "\trrca\n\tsbc\ta, a\n",
     1,
 },
 
@@ -142,6 +173,38 @@ Pattern asm_pattern[] = {
     "\tlea\thl, iy\n\tadd\tiy, iy\n\tsbc\thl, hl\n",
     "\tadd\tiy, iy\n\tsbc\thl, hl\n",
     3,
+},
+
+// lea imm8
+/* */ {
+    "\tlea\thl, iy\n\tinc\thl\n",
+    "\tlea\thl, iy + 1\n",
+    1,
+},
+/* */ {
+    "\tlea\thl, iy\n\tdec\thl\n",
+    "\tlea\thl, iy - 1\n",
+    1,
+},
+/* */ {
+    "\tlea\tde, iy\n\tinc\tde\n",
+    "\tlea\tde, iy + 1\n",
+    1,
+},
+/* */ {
+    "\tlea\tde, iy\n\tdec\tde\n",
+    "\tlea\tde, iy - 1\n",
+    1,
+},
+/* */ {
+    "\tlea\tbc, iy\n\tinc\tbc\n",
+    "\tlea\tbc, iy + 1\n",
+    1,
+},
+/* */ {
+    "\tlea\tbc, iy\n\tdec\tbc\n",
+    "\tlea\tbc, iy - 1\n",
+    1,
 },
 
 // __ishl special
@@ -307,9 +370,28 @@ Pattern asm_pattern[] = {
 },
 
 // __imulu
+
+/* UHL *= 3 */ {
+    "\tpush\tde\n\tpop\thl\n\tld\tbc, 3\n\tcall\t__imulu\n",
+    "\tpush\tde\n\tpop\thl\n\tadd\thl, de\n\tadd\thl, de\n\tld\tbc, 3\n",
+    2,
+},
+
+/* UHL *= 3 */ {
+    "\tld\tbc, 3\n\tpush\tde\n\tpop\thl\n\tcall\t__imulu\n",
+    "\tpush\tde\n\tpop\thl\n\tadd\thl, de\n\tadd\thl, de\n\tld\tbc, 3\n",
+    2,
+},
+
 /* UHL *= 3 */ {
     "\tld\tbc, 3\n\tcall\t__imulu\n",
     "\tpush\thl\n\tpop\tbc\n\tadd\thl, bc\n\tadd\thl, bc\n\tld\tbc, 3\n",
+    0,
+},
+
+/* UHL *= 3 */ {
+    "\tld\tbc, 3\n\tlea\thl, iy\n\tcall\t__imulu\n",
+    "\tlea\thl, iy\tpush\thl\n\tpop\tbc\n\tadd\thl, bc\n\tadd\thl, bc\n\tld\tbc, 3\n",
     0,
 },
 
@@ -320,8 +402,18 @@ Pattern asm_pattern[] = {
     4,
 },
 /* */ {
+    "\tld\tbc, 3\n\tpush\tde\n\tpop\tbc\n",
+    "\tpush\tde\n\tpop\tbc\n",
+    4,
+},
+/* */ {
     "\tpush\tbc\n\tpop\thl\n\tpush\thl\n\tpop\tbc\n",
     "\tpush\tbc\n\tpop\thl\n",
+    2,
+},
+/* */ {
+    "\tpush\thl\n\tpop\thl\n",
+    "",
     2,
 },
 /* */ {
