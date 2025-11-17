@@ -7,7 +7,7 @@
 using std::string;
 using std::printf;
 
-#if 1
+#if 0
 #define test_printf printf
 #else
 #define test_printf(...)
@@ -22,8 +22,10 @@ enum class Action {
 
 struct Config {
     bool freestanding;
+    bool dry_run;
     Config() {
         freestanding = false;
+        dry_run = false;
     }
 };
 

@@ -12,7 +12,8 @@ static void print_help(void) {
     print_version();
     printf("Useage: ezcxx_opt [OPTIONS] <files/directories>\n");
     printf("Options:\n");
-    printf("--freestanding: disable inlining of standard C functions\n");
+    printf("\t--freestanding: disable inlining of standard C functions\n");
+    printf("\t--dry-run: disable modifying files\n");
 }
 
 int main(int const argc, char const * const argv[]) {
@@ -33,15 +34,24 @@ int main(int const argc, char const * const argv[]) {
             print_help();
             return EXIT_SUCCESS;
         }
-        if (strcmp(arg, "--freestanding")) {
+        if (strcmp(arg, "--freestanding") == 0) {
             config.freestanding = true;
             continue;
+        }
+        if (strcmp(arg, "--dry-run") == 0) {
+            config.dry_run = true;
+            continue;
+        }
+        if (arg[0] == '-') {
+            printf("unknown option %s", arg);
+            return EXIT_FAILURE;
         }
         break;
     }
     // handle files/folders/directories
     for (; index < argc; index++) {
         char const * const arg = argv[index];
+        // printf("%d: \"%s\"\n", index, arg);
         int status = process_path(config, arg);
         if (status != 0) {
             return EXIT_FAILURE;

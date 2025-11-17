@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
-#include "text.h"
 #include "prog.h"
 #include "asm_pattern.h"
 #include "text_util.h"
@@ -38,7 +37,7 @@ static void process_code_block(string& block, int& total_changes, int& bytes_sav
     for (size_t i = 0; i < ARRAY_LEN(asm_pattern); i++) {
         const Pattern& pat = asm_pattern[i];
         int count = code.replace(pat.src, pat.dst);
-        if (count >= 0) {
+        if (count > 0) {
             test_printf(
                 "Replaced %d:\n\t%s\n\t%s\n",
                 count,
@@ -80,7 +79,9 @@ Action parse_asm(string& output, const string& input) {
     int changes, bytes_saved;
     process_code_block(code_block, changes, bytes_saved);
 
-    printf("Total changes: %d Byte diff: %+d\n", changes, -bytes_saved);
+    if (changes > 0) {
+        printf("Total changes: %d Byte diff: %+d\n", changes, -bytes_saved);
+    }
 
     if (changes == 0) {
         return Action::Do_Nothing;
