@@ -51,6 +51,11 @@ Pattern asm_pattern[] = {
     "\tcall\t_fabsf\n",
     0,
 },
+/* __sshl */ {
+    "\tcall\t__ishl\n",
+    "\tcall\t__sshl\n",
+    0,
+},
 
 // inline functions
 /* fabsf */ {
@@ -209,6 +214,11 @@ Pattern asm_pattern[] = {
 
 // __ishl special
 /* UHL <<= 1 */ {
+    "\tld\ta, 1\n\tld\tc, a\n\tcall\t__ishl\n\tpush\thl\n\tpop\tbc\n",
+    "\tld\ta, 1\n\tadd\thl, hl\n\tpush\thl\n\tpop\tbc\n",
+    4,
+},
+/* UHL <<= 1 */ {
     "\tld\tc, 1\n\tcall\t__ishl\n\tpush\thl\n\tpop\tbc\n",
     "\tadd\thl, hl\n\tpush\thl\n\tpop\tbc\n",
     5,
@@ -254,6 +264,11 @@ Pattern asm_pattern[] = {
 },
 
 // other __ishl
+/* UHL <<= 1 */ {
+    "\tld\ta, 1\n\tld\tc, a\n\tcall\t__ishl\n",
+    "\tld\ta, 1\n\tld\tc, a\n\tadd\thl, hl\n",
+    3,
+},
 /* UHL <<= 1 */ {
     "\tld\tc, 1\n\tlea\thl, iy\n\tcall\t__ishl\n",
     "\tld\tc, 1\n\tlea\thl, iy\n\tadd\thl, hl\n",
