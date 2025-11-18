@@ -30,27 +30,28 @@ struct find_and_replace {
     }
 };
 
-static void process_code_block(string& block, int& total_changes, int& bytes_saved) {
+static void process_code_block(string& block, Optimize_Diff& diff, bool verbose) {
     find_and_replace code(block);
-    total_changes = 0;
-    bytes_saved = 0;
+    diff.change_count = 0;
+    diff.size_change = 0;
     for (size_t i = 0; i < ARRAY_LEN(asm_pattern); i++) {
         const Pattern& pat = asm_pattern[i];
         int count = code.replace(pat.src, pat.dst);
-        if (count > 0) {
-            test_printf(
+        if (count > 0 && verbose) {
+            printf(
                 "Replaced %d:\n\t%s\n\t%s\n",
                 count,
                 visualize_escape_codes(pat.src).c_str(),
                 visualize_escape_codes(pat.dst).c_str()
             );
         }
-        total_changes += count;
-        bytes_saved += pat.byte_diff * count;
+        diff.change_count += count;
+        diff.size_change += pat.byte_diff * count;
     }
 }
 
-Action parse_asm(string& output, const string& input) {
+Action Program::parse_asm(string& output, const string& input) {
+    const bool verbose = this->verbose_mode();
     if (input.size() < Empty_Input_Length) {
         return Action::Empty_Input;
     }
@@ -76,14 +77,16 @@ Action parse_asm(string& output, const string& input) {
 
     string code_block = input.substr(beg_pos, end_pos - beg_pos);
 
-    int changes, bytes_saved;
-    process_code_block(code_block, changes, bytes_saved);
+    Optimize_Diff diff;
+    process_code_block(code_block, diff, verbose);
 
-    if (changes > 0) {
-        printf("Total changes: %d diff: %+d\n", changes, -bytes_saved);
+    this->total_diff += diff;
+
+    if (diff.change_count > 0 && verbose) {
+        printf("Total changes: %d diff: %+d\n", diff.change_count, -diff.size_change);
     }
 
-    if (changes == 0) {
+    if (diff.change_count == 0) {
         return Action::Do_Nothing;
     }
 
