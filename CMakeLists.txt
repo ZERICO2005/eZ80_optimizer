@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 set(SRC_DIR "./src")
 
-set(PROJECT_NAME "parse_asm")
+set(PROJECT_NAME "ez80_opt")
 project(${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "./bin")
@@ -12,7 +12,7 @@ set(CMAKE_C_COMPILER "clang")
 set(CMAKE_CXX_COMPILER "clang++")
 
 # Set C and C++ standards
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 
 file(GLOB_RECURSE SRC_FILES "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp")
