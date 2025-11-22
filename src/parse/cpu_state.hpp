@@ -2,7 +2,150 @@
 #include <cassert>
 #include <limits>
 #include <bit>
-#include "../ez80_type.h"
+
+using std::countl_zero;
+using std::countl_one;
+using std::countr_zero;
+using std::countr_one;
+using std::has_single_bit;
+using std::bit_floor;
+using std::popcount;
+
+template<typename T>
+T bit_reverse(T x);
+
+template<>
+inline uint8_t bit_reverse(uint8_t x) {
+    return __builtin_bitreverse8(x);
+}
+
+template<>
+inline uint16_t bit_reverse(uint16_t x) {
+    return __builtin_bitreverse16(x);
+}
+
+template<>
+inline uint32_t bit_reverse(uint32_t x) {
+    return __builtin_bitreverse32(x);
+}
+
+template<>
+inline uint64_t bit_reverse(uint64_t x) {
+    return __builtin_bitreverse64(x);
+}
+
+template<typename T>
+T swap_byte_order(T x);
+
+template<>
+inline uint8_t swap_byte_order(uint8_t x) {
+    return x;
+}
+
+template<>
+inline uint16_t swap_byte_order(uint16_t x) {
+    return __builtin_bswap16(x);
+}
+
+template<>
+inline uint32_t swap_byte_order(uint32_t x) {
+    return __builtin_bswap32(x);
+}
+
+template<>
+inline uint64_t swap_byte_order(uint64_t x) {
+    return __builtin_bswap64(x);
+}
+
+#if 1
+
+typedef unsigned _BitInt(24) uint24_t;
+typedef signed _BitInt(24) int24_t;
+typedef unsigned _BitInt(48) uint48_t;
+typedef signed _BitInt(48) int48_t;
+
+#define UINT24_C(x) (static_cast<uint24_t>(UINT32_C(x)))
+#define INT24_C(x) (static_cast<int24_t>(INT32_C(x)))
+#define UINT48_C(x) (static_cast<uint48_t>(UINT64_C(x)))
+#define INT48_C(x) (static_cast<int48_t>(INT64_C(x)))
+
+inline int countl_zero(uint24_t x) {
+	return (x == 0) ? 24 : (countl_zero<uint32_t>(x) - 8);
+}
+inline int countl_zero(uint48_t x) {
+	return (x == 0) ? 48 : (countl_zero<uint64_t>(x) - 16);
+}
+
+inline int countl_one(uint24_t x) {
+	return countl_zero(~x);
+}
+inline int countl_one(uint48_t x) {
+	return countl_zero(~x);
+}
+
+inline int countr_zero(uint24_t x) {
+	return (x == 0) ? 24 : countr_zero<uint32_t>(x);
+}
+inline int countr_zero(uint48_t x) {
+	return (x == 0) ? 48 : countr_zero<uint64_t>(x);
+}
+
+inline int countr_one(uint24_t x) {
+	return countr_one<uint32_t>(x);
+}
+inline int countr_one(uint48_t x) {
+	return countr_one<uint64_t>(x);
+}
+
+inline int popcount(uint24_t x) {
+	return popcount(static_cast<uint32_t>(x));
+}
+inline int popcount(uint48_t x) {
+	return popcount(static_cast<uint64_t>(x));
+}
+
+inline bool has_single_bit(uint24_t x) {
+	return (x && !(x & (x - 1)));
+}
+inline bool has_single_bit(uint48_t x) {
+	return (x && !(x & (x - 1)));
+}
+
+inline uint24_t bit_floor(uint24_t x) {
+	return static_cast<uint24_t>(bit_floor(static_cast<uint32_t>(x)));
+}
+inline uint48_t bit_floor(uint48_t x) {
+	return static_cast<uint48_t>(bit_floor(static_cast<uint64_t>(x)));
+}
+
+template<>
+inline uint24_t bit_reverse(uint24_t x) {
+    return static_cast<uint24_t>(__builtin_bitreverse32(static_cast<uint32_t>(x)) >> 8);
+}
+
+template<>
+inline uint48_t bit_reverse(uint48_t x) {
+    return static_cast<uint48_t>(__builtin_bitreverse64(static_cast<uint64_t>(x)) >> 16);
+}
+
+template<>
+inline uint24_t swap_byte_order(uint24_t x) {
+    return static_cast<uint24_t>(__builtin_bswap32(static_cast<uint32_t>(x)) >> 8);
+}
+
+template<>
+inline uint48_t swap_byte_order(uint48_t x) {
+    return static_cast<uint48_t>(__builtin_bswap64(static_cast<uint64_t>(x)) >> 16);
+}
+
+#else
+
+typedef uint32_t uint24_t;
+typedef int32_t int24_t;
+typedef uint64_t uint48_t;
+typedef int64_t int48_t;
+
+#endif
 
 class KBool {
     bool kfalse;
@@ -59,12 +202,12 @@ public:
         return (kfalse != ktrue);
     }
     bool known_true() const {
-        return (!kfalse && ktrue);
+        return ktrue;
     }
     bool known_false() const {
-        return (kfalse && !ktrue);
+        return !kfalse;
     }
-    void invert_state() {
+    KBool& invert_state() {
         if (is_known()) {
             kfalse = !kfalse;
             ktrue = !ktrue;
@@ -108,40 +251,40 @@ public:
     }
     KBool is_equal(const KBool& other) const {
         if (this->is_unknown() || other.is_unknown()) {
-            return KUnknown();
+            return Unknown();
         }
         return KBool(this->to_bool() == other.to_bool());
     }
     KBool is_equal(bool other) const {
         if (this->is_unknown()) {
-            return KUnknown();
+            return Unknown();
         }
         return KBool(this->to_bool() == other);
     }
     KBool is_notequal(const KBool& other) const {
         if (this->is_unknown() || other.is_unknown()) {
-            return KUnknown();
+            return Unknown();
         }
         return KBool(this->to_bool() != other.to_bool());
     }
     KBool is_notequal(bool other) const {
         if (this->is_unknown()) {
-            return KUnknown();
+            return Unknown();
         }
         return KBool(this->to_bool() != other);
     }
 
     KBool operator~() const {
-        return KInvert(*this);
+        return Invert(*this);
     }
     KBool operator&(const KBool& other) const {
-        if (this->known_flase() || other.known_false()) {
+        if (this->known_false() || other.known_false()) {
             return KFalse();
         }
         if (this->known_true() && other.known_true()) {
             return KTrue();
         }
-        return KUnknown();
+        return Unknown();
     }
     KBool operator|(const KBool& other) const {
         if (this->known_true() || other.known_true()) {
@@ -150,7 +293,7 @@ public:
         if (this->known_false() && other.known_false()) {
             return KFalse();
         }
-        return KUnknown();
+        return Unknown();
     }
     KBool operator^(const KBool& other) const {
         return this->is_notequal(other);
@@ -158,7 +301,7 @@ public:
 };
 
 template<class T>
-class KBI<T> {
+class KBI {
 public:
     T zero;
     T ones;
@@ -175,7 +318,7 @@ public:
         return (T(1) << index);
     }
     int get_sign_index() const {
-        return (digits - 1);
+        return (bit_width - 1);
     }
     T get_sign_mask() const {
         return get_bit_mask(-1);
@@ -225,10 +368,10 @@ public:
         ones &= ~mask;
     }
     KBool bit_test(int index) {
-        if (known_bit_set()) {
+        if (known_bit_set(index)) {
             return KBool::KTrue();
         }
-        if (known_bit_clear()) {
+        if (known_bit_clear(index)) {
             return KBool::KFalse();
         }
         return KBool::Unknown();
@@ -272,7 +415,7 @@ public:
             set_all_ones();
             return;
         }
-        set_all_zeros();
+        set_all_zero();
     }
     void sext(KBool b) {
         if (b.known_true()) {
@@ -286,11 +429,11 @@ public:
         set_unknown();
     }
     void zext(bool b) {
-        set_all_zeros();
+        set_all_zero();
         bit_copy(0, b);
     }
     void zext(KBool b) {
-        set_all_zeros();
+        set_all_zero();
         bit_copy(0, b);
     }
     KBI() {
@@ -403,8 +546,10 @@ public:
     }
 };
 
+/* logical */
+
 template<class T>
-KBI<T> bitwise_not(const KBI<T>& arg) {
+KBI<T> operator~(const KBI<T>& arg) {
     KBI<T> ret;
     ret.zero = arg.ones;
     ret.ones = arg.zero;
@@ -412,163 +557,26 @@ KBI<T> bitwise_not(const KBI<T>& arg) {
 }
 
 template<class T>
-KBI<T> bitwise_and(const KBI<T>& LHS, const KBI<T>& RHS) {
+KBI<T> operator&(const KBI<T>& LHS, const KBI<T>& RHS) {
     KBI<T> ret;
-    ret.zero = LSH.zero | RHS.zero;
-    ret.ones = LSH.ones & RHS.ones;
+    ret.zero = LHS.zero | RHS.zero;
+    ret.ones = LHS.ones & RHS.ones;
     return ret;
 }
 
 template<class T>
-KBI<T> bitwise_or(const KBI<T>& LHS, const KBI<T>& RHS) {
+KBI<T> operator|(const KBI<T>& LHS, const KBI<T>& RHS) {
     KBI<T> ret;
-    ret.zero = LSH.zero & RHS.zero;
-    ret.ones = LSH.ones | RHS.ones;
+    ret.zero = LHS.zero & RHS.zero;
+    ret.ones = LHS.ones | RHS.ones;
     return ret;
 }
 
 template<class T>
-KBI<T> bitwise_xor(const KBI<T>& LHS, const KBI<T>& RHS) {
+KBI<T> operator^(const KBI<T>& LHS, const KBI<T>& RHS) {
     KBI<T> ret;
-    ret.zero = (LSH.zero & RHS.zero) | (LSH.ones & RHS.ones);
-    ret.ones = (LSH.zero & RHS.ones) | (LSH.ones & RHS.zero);
-    return ret;
-}
-
-template<class T>
-KBI<T> increment(const KBI<T>& arg) {
-    KBI<T> ret;
-    if (arg.is_fully_known()) {
-        ret.set_value(arg.get_value() + 1);
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> decrement(const KBI<T>& arg) {
-    KBI<T> ret;
-    if (arg.is_fully_known()) {
-        ret.set_value(arg.get_value() - 1);
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> negate(const KBI<T>& arg) {
-    KBI<T> ret;
-    if (arg.is_fully_known()) {
-        ret.set_value(-arg.get_value());
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> absolute_value(const KBI<T>& arg) {
-    if (arg.known_signbit_clear()) {
-        return arg;
-    }
-    if (arg.known_signbit_set()) {
-        return negate(arg);
-    }
-    KBI<T> ret;
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> add(const KBI<T>& LHS, const KBI<T>& RHS) {
-    KBI<T> ret;
-    if (LHS.is_fully_known() && RHS.is_fully_known()) {
-        ret.set_value(LHS.get_value() + RHS.get_value());
-        return ret;
-    }
-    if (LHS.known_zero()) {
-        return RHS;
-    }
-    if (RHS.known_zero()) {
-        return LHS;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> sub(const KBI<T>& LHS, const KBI<T>& RHS) {
-    KBI<T> ret;
-    if (LHS.is_fully_known() && RHS.is_fully_known()) {
-        ret.set_value(LHS.get_value() - RHS.get_value());
-        return ret;
-    }
-    if (LHS.known_zero()) {
-        return RHS;
-    }
-    if (RHS.known_zero()) {
-        return LHS;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> mul(const KBI<T>& LHS, const KBI<T>& RHS) {
-    KBI<T> ret;
-    if (LHS.is_fully_known() && RHS.is_fully_known()) {
-        ret.set_value(LHS.get_value() * RHS.get_value());
-        return ret;
-    }
-    if (LHS.known_zero() || RHS.known_zero()) {
-        ret.set_all_zero();
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> div_unsigned(const KBI<T>& LHS, const KBI<T>& RHS) {
-    KBI<T> ret;
-    if (LHS.is_fully_known() && RHS.is_fully_known()) {
-        ret.set_value(LHS.get_value() / RHS.get_value());
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> rem_unsigned(const KBI<T>& LHS, const KBI<T>& RHS) {
-    KBI<T> ret;
-    if (LHS.is_fully_known() && RHS.is_fully_known()) {
-        ret.set_value(LHS.get_value() % RHS.get_value());
-        return ret;
-    }
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> div_signed(const KBI<T>& LHS, const KBI<T>& RHS) {
-    if (LHS.known_signbit_clear() && RHS.known_signbit_clear()) {
-        return div_unsigned(LHS, RHS);
-    }
-    KBI<T> ret;
-    ret.set_unknown();
-    return ret;
-}
-
-template<class T>
-KBI<T> rem_signed(const KBI<T>& LHS, const KBI<T>& RHS) {
-    if (LHS.known_signbit_clear() && RHS.known_signbit_clear()) {
-        return rem_unsigned(LHS, RHS);
-    }
-    KBI<T> ret;
-    ret.set_unknown();
+    ret.zero = (LHS.zero & RHS.zero) | (LHS.ones & RHS.ones);
+    ret.ones = (LHS.zero & RHS.ones) | (LHS.ones & RHS.zero);
     return ret;
 }
 
@@ -630,10 +638,10 @@ KBI<T> shift_right_unknown_bits(const KBI<T>& arg, int shift) {
 
 template<class T>
 KBI<T> shift_right_arithmetic(const KBI<T>& arg, int shift) {
-    if (known_signbit_clear()) {
+    if (arg.known_signbit_clear()) {
         return shift_right_logical(arg, shift);
     }
-    if (known_signbit_set()) {
+    if (arg.known_signbit_set()) {
         return shift_right_ones(arg, shift);
     }
     return shift_right_unknown_bits(arg, shift);
@@ -691,11 +699,405 @@ KBI<T> rotate_right_with_carry(const KBI<T>& arg, int shift, KBool& carry_inout)
     }
 }
 
-struct CPU_State {
-    int32_t HL;
-    int32_t DE;
-    int32_t BC;
-    int32_t IX;
-    int32_t IY;
+/* merge */
 
-};
+template<class T>
+KBI<T> create_from_unsigned_range(const T& min_bound, const T& max_bound) {
+    KBI<T> ret;
+    if (min_bound == max_bound) {
+        ret.set_value(min_bound);
+        return ret;
+    }
+    ret.set_unknown();
+    if (min_bound > max_bound) {
+        // not sure how to implement wrap around
+        return ret;
+    }
+    for (size_t i = KBI<T>::bit_width; i --> 0;) {
+        bool x = (min_bound & (static_cast<T>(1) << i));
+        bool y = (max_bound & (static_cast<T>(1) << i));
+        if (x != y) {
+            break;
+        }
+        ret.bit_copy(i, x);
+    }
+}
+
+/**
+ * @brief sets bits to unknown on conflict
+ */
+template<class T>
+void merge_bits_favor_unknown(const KBI<T>& x, const KBI<T>& y) {
+    KBI<T> ret;
+    ret.zero = x.zero & y.zero;
+    ret.zero = x.ones & y.ones;
+    return ret;
+}
+
+/* arithmetic */
+
+template<class T>
+KBI<T> increment(const KBI<T>& arg) {
+    KBI<T> ret = arg;
+    for (size_t i = 0; i < KBI<T>::bit_width; i++) {
+        KBool X = ret.bit_test(i);
+        // SUM = X ^ CIN
+        // COUT = X & CIN
+        ret.bit_copy(i, X ^ carry);
+        carry = carry & X;
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> decrement(const KBI<T>& arg) {
+    KBI<T> ret = arg;
+    for (size_t i = 0; i < bit_width_of_type<T>(); i++) {
+        KBool X = ret.bit_test(i);
+		// DIFF = X ^ CIN
+		// COUT = ~X & CIN
+        ret.bit_copy(i, X ^ carry);
+        carry = ~X & carry;
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> negate(const KBI<T>& arg) {
+    return increment(~arg);
+}
+
+template<class T>
+KBI<T> absolute_value(const KBI<T>& arg) {
+    if (arg.known_signbit_clear()) {
+        return arg;
+    }
+    if (arg.known_signbit_set()) {
+        return negate(arg);
+    }
+    KBI<T> ret;
+    ret.set_unknown();
+    return ret;
+}
+
+
+
+template<class T>
+KBI<T> add_with_carry(const KBI<T>& LHS, const KBI<T>& RHS, KBool& carry) {
+    KBI<T> ret;
+    for (size_t i = 0; i < KBI<T>::bit_width; i++) {
+        // 1 bit full adder
+        KBool X = x.bit_test(i);
+        KBool Y = y.bit_test(i);
+        // SUM = X ^ Y ^ CIN
+        // COUT = (X & Y) | (CIN & (X ^ Y))
+        ret.bit_copy(i, X ^ Y ^ carry);
+        carry = (X & Y) | (carry & (X ^ Y));
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> add(const KBI<T>& LHS, const KBI<T>& RHS) {
+    KBool carry = false;
+    return add_with_carry(LHS, RHS, carry);
+}
+
+KBool add_overflow(const KBI<T>& x, const KBI<T>& y, const KBI<T>& result, const KBool& carry) {
+    /*
+    Signed Overflow Truth Table
+    Overflow occurs when (pos + pos = neg) or (neg + neg = pos)
+    +---+---+---+---+---+
+    | X | Y |   | R |   |
+    +---+---+---+---+---+
+    |   |   | 0 | 1 | ? |
+    +---+---+---+---+---+
+    | 0 | 0 | 0 : 1 : ? :
+    | 0 | 1 | 0 : 0 : 0 :
+    | 0 | ? | 0 : ? : ? :
+    +---+---+---+---+---+
+    | 1 | 0 | 0 : 0 : 0 :
+    | 1 | 1 | 1 : 0 : ? :
+    | 1 | ? | ? : 0 : ? :
+    +---+---+---+---+---+
+    | ? | 0 | 0 : ? : ? :
+    | ? | 1 | ? : 0 : ? :
+    | ? | ? | ? : ? : ? :
+    +---+---+---+---+---+
+    */
+    if (carry.known_false()) {
+        if (x.is_known() && y.is_known()) {
+            if (x != y) {
+                // never overflows
+                return KBool::KFalse();
+            }
+            if (result.is_known()) {
+                if (x.to_bool() == result.to_bool()) {
+                    // inputs and outputs are the same sign
+                    return KBool::KFalse();
+                }
+                // (pos + pos = neg) or (neg + neg = pos)
+                return KBool::KTrue();
+            }
+            // overflow cannot be determined
+            return KBool::Unknown();
+        }
+        if (result.is_known()) {
+            if (x.is_known()) {
+                if (x.to_bool() == result.to_bool()) {
+                    // inputs and outputs are the same sign
+                    return KBool::KFalse();
+                }
+            }
+            if (y.is_known()) {
+                if (y.to_bool() == result.to_bool() ) {
+                    // inputs and outputs are the same sign
+                    return KBool::KFalse();
+                }
+            }
+        }
+        return KBool::Unknown();
+    }
+}
+
+KBool sub_overflow(const KBI<T>& x, const KBI<T>& y, const KBI<T>& result, const KBool& carry) {
+    return add_overflow(x, y, KBool::Invert(result));
+}
+
+template<class T>
+KBI<T> add_with_flags(const KBI<T>& x, const KBI<T>& y, KBool& carry, KBool& overflow) {
+    KBI<T> ret = add_with_carry(x, y, carry);
+    T x_max = x.max_signed();
+    T y_max = y.max_signed();
+    T x_min = x.min_signed();
+    T y_min = y.min_signed();
+    T sum_max, sum_min, temp;
+    bool max_overflow = __builtin_sadd_overflow(x_max, y_max, &sum_max);
+    max_overflow = max_overflow || __builtin_sadd_overflow(sum_max, (!carry.known_false()) ? 1 : 0, &temp);
+    bool min_overflow = __builtin_sadd_overflow(x_min, y_min, &sum_min);
+    min_overflow = min_overflow || __builtin_sadd_overflow(sum_min, (carry.known_true()) ? 1 : 0, &temp);
+    if (max_overflow == min_overflow) {
+        overflow = KBool(max_overflow);
+    } else {
+        overflow = KBool::Unknown();
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> sub_with_carry(const KBI<T>& LHS, const KBI<T>& RHS, KBool& carry) {
+    KBI<T> ret;
+    for (size_t i = 0; i < KBI<T>::bit_width; i++) {
+        // 1 bit full subtractor
+        KBool X = x.bit_test(i);
+        KBool Y = y.bit_test(i);
+        // DIFF = X ^ Y ^ CIN
+        // COUT = X < (Y + C)
+        // COUT = (~X & Y) | (CIN & ~(X ^ Y))
+        ret.bit_copy(i, X ^ Y ^ carry);
+        carry = (~X & Y) | (carry & ~(X ^ Y));
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> sub(const KBI<T>& LHS, const KBI<T>& RHS) {
+    KBool carry = false;
+    return sub_with_carry(LHS, RHS, carry);
+}
+
+template<class T>
+KBI<T> sub_with_flags(const KBI<T>& LHS, const KBI<T>& RHS, KBool& carry, KBool& overflow) {
+    KBI<T> ret = sub_with_carry(x, y, carry);
+    T x_max = x.max_signed();
+    T y_max = y.max_signed();
+    T x_min = x.min_signed();
+    T y_min = y.min_signed();
+    T diff_max, diff_min, temp;
+    bool max_overflow = __builtin_ssub_overflow(x_max, y_min, &diff_max);
+    max_overflow = max_overflow || __builtin_ssub_overflow(diff_max, (!carry.known_false()) ? 1 : 0, &temp);
+    bool min_overflow = __builtin_ssub_overflow(x_min, y_max, &diff_min);
+    min_overflow = min_overflow || __builtin_ssub_overflow(diff_min, (carry.known_true()) ? 1 : 0, &temp);
+    if (max_overflow == min_overflow) {
+        overflow = KBool(max_overflow);
+    } else {
+        overflow = KBool::Unknown();
+    }
+    return ret;
+}
+
+template<class T>
+void compare_with_carry(const KBI<T>& LHS, const KBI<T>& RHS, KBool& carry, KBool& zero, KBool& sign, KBool& overflow) {
+    KBI<T> result = sub_with_flags(LHS, RHS, carry, overflow);
+    zero = result.is_zero();
+    sign = result.test_signbit();
+}
+
+template<class T>
+void compare(const KBI<T>& LHS, const KBI<T>& RHS, KBool& carry, KBool& zero, KBool& sign, KBool& overflow) {
+    carry = false;
+    compare(LHS, RHS, carry, zero, sign, overflow);
+}
+
+template<class T>
+KBI<T> mul(const KBI<T>& LHS, const KBI<T>& RHS) {
+    KBI<T> ret;
+    if (LHS.is_fully_known() && RHS.is_fully_known()) {
+        ret.set_value(LHS.get_value() * RHS.get_value());
+        return ret;
+    }
+    if (LHS.known_zero() || RHS.known_zero()) {
+        ret.set_all_zero();
+        return ret;
+    }
+    ret.set_unknown();
+    T max_mult, min_mult;
+    if (__builtin_mul_overflow(LHS.max_unsigned(), RHS.max_unsigned())) {
+        return ret;
+    }
+    if (__builtin_mul_overflow(LHS.min_unsigned(), RHS.min_unsigned())) {
+        return ret;
+    }
+    return create_from_unsigned_range(min_mult, max_mult);
+}
+
+template<class T>
+KBI<T> div_unsigned(const KBI<T>& LHS, const KBI<T>& RHS) {
+    KBI<T> ret;
+    if (LHS.is_fully_known() && RHS.is_fully_known()) {
+        ret.set_value(LHS.get_value() / RHS.get_value());
+        return ret;
+    }
+    if (RHS.known_nonzero()) {
+        return create_from_unsigned_range(LHS.min_unsigned() / RHS.max_unsigned(), LHS.max_unsigned() / RHS.min_unsigned());
+    }
+    ret.set_unknown();
+    return ret;
+}
+
+template<class T>
+KBI<T> rem_unsigned(const KBI<T>& LHS, const KBI<T>& RHS) {
+    KBI<T> ret;
+    if (LHS.is_fully_known() && RHS.is_fully_known()) {
+        ret.set_value(LHS.get_value() % RHS.get_value());
+        return ret;
+    }
+    if (RHS.known_nonzero()) {
+        if (LHS.max_unsigned() < RHS.min_unsigned()) {
+            return LHS.max_unsigned();
+        }
+        return create_from_unsigned_range(0, RHS.max_unsigned() - 1);
+    }
+    ret.set_unknown();
+    return ret;
+}
+
+template<class T>
+KBI<T> div_signed(const KBI<T>& LHS, const KBI<T>& RHS) {
+    if (LHS.known_signbit_clear() && RHS.known_signbit_clear()) {
+        return div_unsigned(LHS, RHS);
+    }
+    KBI<T> ret;
+    ret.set_unknown();
+    return ret;
+}
+
+template<class T>
+KBI<T> rem_signed(const KBI<T>& LHS, const KBI<T>& RHS) {
+    if (LHS.known_signbit_clear() && RHS.known_signbit_clear()) {
+        return rem_unsigned(LHS, RHS);
+    }
+    KBI<T> ret;
+    ret.set_unknown();
+    return ret;
+}
+
+template<class T>
+KBI<uint8_t> popcount(const KBI<T>& arg) {
+    uint8_t lower_bound = popcount(x.get_unsigned_minimum());
+    uint8_t upper_bound = popcount(x.get_unsigned_maximum());
+    return create_from_unsigned_range(lower_bound, upper_bound);
+}
+
+template<class T>
+KBI<uint8_t> count_leading_zeros(const KBI<T>& arg) {
+    uint8_t lower_bound = countl_zero(x.get_unsigned_minimum());
+    uint8_t upper_bound = countl_zero(x.get_unsigned_maximum());
+    return create_from_unsigned_range(lower_bound, upper_bound);
+}
+
+template<class T>
+KBI<uint8_t> count_trailing_zeros(const KBI<T>& arg) {
+    uint8_t lower_bound = countr_zero(x.get_unsigned_minimum());
+    uint8_t upper_bound = countr_zero(x.get_unsigned_maximum());
+    return create_from_unsigned_range(lower_bound, upper_bound);
+}
+
+template<class T>
+KBI<T> bit_reverse(const KBI<T>& arg) {
+    KBI<T> ret;
+    ret.zero = bit_reverse(arg.zero);
+    ret.ones = bit_reverse(arg.ones);
+    return ret;
+}
+
+template<class T>
+KBI<T> swap_byte_order(const KBI<T>& arg) {
+    KBI<T> ret;
+    ret.zero = swap_byte_order(arg.zero);
+    ret.ones = swap_byte_order(arg.ones);
+    return ret;
+}
+
+/* other shift */
+
+template<class T>
+KBI<T> shift_left_logical(const KBI<T>& LHS, const KBI<uint8_t>& RHS) {
+    KBI<T> ret;
+    if (RHS.max_unsigned() >= LHS::bit_width) {
+        ret.set_unknown();
+        return ret;
+    }
+    ret = shift_left_logical(LHS, RHS.min_unsigned());
+    for (int i = RHS.min_unsigned() + 1; i <= RHS.max_unsigned(); i++) {
+        // clear any conflicting bits
+        KBI<T> temp = shift_left_logical(LHS, i);
+        ret.zero &= temp.zero;
+        ret.ones &= temp.ones;
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> shift_right_logical(const KBI<T>& LHS, const KBI<uint8_t>& RHS) {
+    KBI<T> ret;
+    if (RHS.max_unsigned() >= LHS::bit_width) {
+        ret.set_unknown();
+        return ret;
+    }
+    ret = shift_right_logical(LHS, RHS.min_unsigned());
+    for (int i = RHS.min_unsigned() + 1; i <= RHS.max_unsigned(); i++) {
+        // clear any conflicting bits
+        KBI<T> temp = shift_right_logical(LHS, i);
+        ret.zero &= temp.zero;
+        ret.ones &= temp.ones;
+    }
+    return ret;
+}
+
+template<class T>
+KBI<T> shift_right_arithmetic(const KBI<T>& LHS, const KBI<uint8_t>& RHS) {
+    KBI<T> ret;
+    if (RHS.max_unsigned() >= LHS::bit_width) {
+        ret.set_unknown();
+        return ret;
+    }
+    ret = shift_right_arithmetic(LHS, RHS.min_unsigned());
+    for (int i = RHS.min_unsigned() + 1; i <= RHS.max_unsigned(); i++) {
+        // clear any conflicting bits
+        KBI<T> temp = shift_right_arithmetic(LHS, i);
+        ret.zero &= temp.zero;
+        ret.ones &= temp.ones;
+    }
+    return ret;
+}
